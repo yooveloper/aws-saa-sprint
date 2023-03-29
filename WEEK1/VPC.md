@@ -1,9 +1,28 @@
 # VPC(Virtual Private Cloud)
 
-AWS에서 제공하는 가상 네트워크 서비스
-AWS VPC를 사용해서 자체 가상 네트워크를 구성하고
-AWS 리소스와 연결하여 안전하고 확장 가능한 인프라 구축 가능
+- 독립된 가상의 클라우드 네트워크 환경을 제공하는 AWS 서비스
+- VPC 내에서 IP대역, 서브넷, 라우팅 테이블, 인터넷 게이트웨이, 보안 그룹, ACL 등을 생성 및 제어
+- subnet은 하나의 az안에 종속되어야 한다.
 
-- VPC 내에서 사용자의 IP 주소 범위와 서브넷을 정의할 수 있음.
-- 라우팅 테이블, 인터넷 게이트웨이, NAT 게이트웨이, 가상 프라이빗 게이트웨이 설정 가능
-- 다양한 서비스와 통합해서 사용 가능 ex) RDS, ElastiCache, Lambda 등
+## Public Subnet & Private Subnet
+
+VPC 안에 구성할 수 있는 서브넷 구성에는 Public Subnet과 Private Subnet이 있다.
+
+- Public Subnet
+  - 외부와 자유로운 통신이 가능
+- Private Subnet
+  - 외부에서 직접 접근 불가
+  - NAT Gateway를 이용해 내부 -> 외부로 단방향 통신 가능
+
+## CIDR
+
+- CIDR은 IP 범위
+  - 추후 정리
+
+## VPC Peering
+
+- Private IPv4, IPv6 주소를 사용하여 VPC 끼리 연결
+
+## VPC Endpoint
+
+- VPC 내부에서 AWS 서비스에 접근할 수 있도록 하는 서비스
