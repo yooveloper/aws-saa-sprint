@@ -96,3 +96,150 @@ L4 로드 밸런서이므로 TCP와 UDP 트래픽을 다룰 수 있다.
 - ALB 앞에 NLB를 사용할 수도 있다.
   - 이렇게 사용하는 이유는 NLB 덕분에 고정 IP를 얻을 수 있고, ALB 덕분에 HTTP 트래픽을 처리하는 규칙을 얻을 수 있다.
 - 상태확인(Health Check)를 지원하는 프로토콜은 TCP, HTTP, HTTPS 이다.
+
+<br >
+
+## Gateway Load Balancer(GWLB)
+
+네트워크 계층(3계층) 에서 동작하는 로드밸런서로서
+
+모든 로드 밸런서보다 낮은 계층에서 실행된다.
+
+### GWLB의 두 가지 기능
+
+- Transparent Network Gateway(투명 네트워크 게이트웨이): 모든 트래픽에 대한 단일 진입/출구
+- target group의 appliances 집합에 트래픽을 분산한다.
+- 시험 볼때 6081 포트의 GENEVE 프로토콜을 사용해라.
+
+<br >
+
+### GWLB의 target group
+
+- EC2 instance
+- IP Address - must be private IPs
+
+<br >
+
+## Sticky Session
+
+분산된 서버 인스턴스 구조에서
+
+a 클라이언트가 최초에 a 인스턴스로 요청을 보냈다면
+
+로드밸런서에서 두 번째 요청을 실행할 때 a 클라이언트의 요청은 a 인스턴스로만 가게 하는걸 스티키 세션이라고 한다.
+
+- 일부 인스턴스는 고정 유저를 갖게 되고 인스턴스의 부하가 발생할 수 있음.
+
+sticky session 에는 두 가지 쿠키가 있다.
+
+- Application-based Cookies
+  - Custom cookie(사용자 정의 쿠키)
+    - 앱에 필요한 데이터를 포함할 수 있음
+    - AWSALB, AWSALBAPP 과 같은 이름 사용하면 안됨 (ELB에서 사용함)
+  - Application cookie
+    - 로드밸런서에서 자체 생성
+    - ALB의 쿠키 이름은 `AWSALBAPP`
+  - 애플리케이션에서 기간을 지정할 수 있음
+- Duration-based Coockies
+  - 로드밸런서에서 생성되는 쿠키
+  - ALB에서는 이름이 `AWSALB` 이다.
+  - 특정 기간을 기반으로 만료되며 기간은 로드밸런서에서 자체적으로 정한다.
+
+<br >
+<br >
+<br >
+
+## Cross-Zone Load Balancing
+
+- Cross-Zone Load Balacing을 사용하면 모든 영역에 있는 EC2 인스턴스에 트래픽이 고르게 분산된다.
+- ALB는 Cross-Zone Load Balancing이 default로 활성화되어있다.
+- AZ 간의 데이터 이동에 비용이 들지 않는다.
+- NLB와 GWLB는 Cross-Zone Load Balancing이 기본적으로 비활성화 되어 있다.
+  - AZ 간에 데이터 이동 시 비용 지불
+
+## Connection Draining
+
+ALB & NLB를 사용할 경우 Deregiestration Delay(등록 취소 지연) 이라고 한다
+
+인스턴스가 등록 취소, 혹은 비정상적인 상태에 있을 때 어느정도 딜레이를 줘서 활성 요청을 완료할 수 있도록 하는 기능
+
+연결이 드레이닝 되면 ELB는 등록 취소중인 인스턴스로 더이상 요청을 보내지 않는다.
+
+쉽게 말하면 걍 사용자의 요청을 처리중인 인스턴스를 바로 삭제 못하게 하는 기능인듯?
+
+예를들어 사용자 수가 줄어들면 auto scaling이 인스턴스를 지우려고 할텐데 이때 사용자가 해당 인스턴스에서 무언가 작업을 하고 있으면 지우기전에 해당 요청을 완료할 수 있도록
+지정한 시간 만큼 기다리는 기능이다.
+
+1~3600 seconds 까지 설정 가능하고 default는 300s 이다.
+
+<br >
+<br >
+<br >
+
+# Auto Scaling Group(ASG)
+
+- 트래픽에 대응해서 자동으로 인스턴스를 스케일 in-out 해주는 기능
+- minimum, maximum capacity를 parameter로 설정할 수 있다.
+- 로드밸런서와 페어링 할 경우 ASG에 속한 모든 ec2 인스턴스가 자동으로 로드밸런서에 연결 됨.
+- 한 인스턴스가 비정상이면 종료하고 새 인스턴스를 생성함.
+- ASG는 무료이고 ec2 인스턴스와 같은 하위 리소스에 대한 비용만 내면 된다.
+
+## ASG Attributes
+
+- Launch Template
+  - AMI + instance type
+  - EC2 User Data
+  - EBS Volume
+  - Security Group
+  - SSH key pair
+  - IAM Roles for your instance
+  - Network + Subnets information
+  - load balancer information
+- Min size / Max size / initial Capacity
+- Scaling Policies
+
+## CloudWatch Alarms & Scaling
+
+- 클라우드 와치 알림 기반으로 scale in/out 할 수 있다.
+  - CPU 사용량이나 특정 유저 수 등의 metric으로 트리거를 발동
+
+<br >
+<br >
+
+## ASG Scaling Policies
+
+### Dynamic Scaling Policies
+
+- Target Tracking Scaling(대상 추적)
+
+  - 가장 단순하고 설정하기 쉬움
+  - 예를들어 CPU 사용량을 40% 기준선으로 정하고 스케일링 하는 등
+
+- Simple / Step Scaling
+
+  - CloudWatch Alarm을 기반으로 스케일링
+  - CPU 사용량이 늘어나면 2대의 unit을 추가 한다거나
+  - 반대로 30% 아래로 내려가면 1대의 unit을 remove
+
+- Scheduled Actions
+
+  - 예정된 스케줄을 바탕으로 스케일링
+  - 예를들어 우리 서비스가 금요일 오후 5시에 큰 이벤트가 있으니까 그때를 대비해 min capacity를 늘린다던가 하는 식으로 사용
+
+- Predictive Scaling(예측 스케일링)
+  - 과거 로드 데이터를 분석해서 예측을 하고 해당 예측을 기반으로 사전에 스케일링 작업 예약
+
+### Good metrics to scale on
+
+- CPUUtilization: Average CPU
+- RequestCountPerTarget
+- Average Network I/O
+- Custom metrics
+
+### Scaling Cooldowns
+
+- 스케일링 작업이 끝날 때마다 인스턴스의 추가/삭제를 막론하고 기본적으로 300초를 쉬는 것
+- Cooldown 기간에는 ASG가 추가 인스턴스를 실행/종료 할 수 없음
+- 이는 새로운 인스턴스의 안정화 + 새로운 지표의 양상을 파악하기 위해 존재
+- Scaling이 발생할때 Cooldown이 설정되어 있는지 확인해야 함.
+- AMI 를 사용해서 ec2 인스턴스 구성 시간을 단축하면 더 많은 동적 스케일링이 가능함
